@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no"/>
+    <style type="text/css">
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            margin: 0;
+        }
+
+        #allmap {
+            margin-right: 300px;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        #result {
+            border-left: 1px dotted #999;
+            height: 100%;
+            width: 295px;
+            position: absolute;
+            top: 0px;
+            right: 0px;
+            font-size: 12px;
+        }
+
+        dl, dt, dd, ul, li {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        p {
+            font-size: 12px;
+        }
+
+        dt {
+            font-size: 14px;
+            font-family: "微软雅黑";
+            font-weight: bold;
+            border-bottom: 1px dotted #000;
+            padding: 5px 0 5px 5px;
+            margin: 5px 0;
+        }
+
+        .anchorBL {
+            /*头部样式*/
+            display: none;
+        }
+
+        dd {
+            padding: 5px 0 0 5px;
+        }
+
+        li {
+            line-height: 28px;
+        }
+    </style>
+    <link href="http://libs.baidu.com/bootstrap/3.0.3/css/bootstrap.min.css" rel="stylesheet">
+    <script src="http://libs.baidu.com/jquery/2.0.0/jquery.min.js"></script>
+    <script src="http://libs.baidu.com/bootstrap/3.0.3/js/bootstrap.min.js"></script>
+    <script src="echarts.min.js"></script>
+    <script type="text/javascript"
+            src="http://api.map.baidu.com/api?v=2.0&ak=472ef16d07e7b6c70b069ea3614318cd"></script>
+    <!--加载鼠标绘制工具-->
+    <script type="text/javascript"
+            src="http://api.map.baidu.com/library/DrawingManager/1.4/src/DrawingManager_min.js"></script>
+    <link rel="stylesheet" href="http://api.map.baidu.com/library/DrawingManager/1.4/src/DrawingManager_min.css"/>
+    <!--加载检索信息窗口-->
+    <script type="text/javascript"
+            src="http://api.map.baidu.com/library/SearchInfoWindow/1.4/src/SearchInfoWindow_min.js"></script>
+    <link rel="stylesheet" href="http://api.map.baidu.com/library/SearchInfoWindow/1.4/src/SearchInfoWindow_min.css"/>
+    <link rel="stylesheet" type="text/css" href="libs/bootstrap/css/bootstrap.min.css">
+    <!--<link rel="stylesheet" type="text/css" href="css/myStyle.css">-->
+</head>
+<body>
+<link rel="stylesheet" type="text/css" href="css/myStyle.css">
+<nav class="navbar navbar-default navbar-fixed-top">
+    <div class="container-fluid">
+        <div class="navbar-header">
+            <div class="collapse navbar-collapse">
+                <div class="navbar-header">
+                    <img src="didi.png" alt="didi Logo" width=100/>
+                </div>
+                <ul class="nav navbar-nav navbar-right">
+                    <li class="navList">查找车型</li>
+                    <li>
+                        <form id="rideSelect">
+                            <select id="rideType" class="estimatorForm">
+                                <option value="kuaiche">专快车</option>
+                                <option value="shunfeng">顺风车</option>
+                                <option value="taxi">出租车</option>
+
+                            </select>
+                        </form>
+                    </li>
+
+                    <li class="navList">地点</li>
+                    <li>
+                        <form id="addressSelect">
+                            <input type="text" id="us3-address" class="estimatorForm">
+                        </form>
+                    </li>
+
+                    <li class="navList">时间</li>
+                    <li>
+                        <form id="timeSelect">
+                            <input type="time" name="usr_time" id="timepicker" class="estimatorForm">
+                        </form>
+                    </li>
+                    <li class="navList">
+                        <button id="#submitChanges" data-toggle="modal" data-target="#myModal">
+                            需求预测
+                        </button>
+                    </li>
+                </ul>
+            </div>
+        </div><!-- /.navbar-collapse -->
+    </div><!-- /.container-fluid -->
+</nav>
+<div id="allmap" style="overflow:hidden;zoom:1;position:relative;">
+    <div id="map" style="height:100%;-webkit-transition: all 0.5s ease-in-out;transition: all 0.5s ease-in-out;"></div>
+    <div id="showPanelBtn"
+         style="position:absolute;font-size:14px;top:50%;margin-top:-95px;right:0px;width:20px;padding:10px 10px;color:#999;cursor:pointer;text-align:center;height:170px;background:rgba(255,255,255,0.9);-webkit-transition: all 0.5s ease-in-out;transition: all 0.5s ease-in-out;font-family:'微软雅黑';font-weight:bold;">
+        显示检索结果面板<br/><
+    </div>
+    <div id="panelWrap"
+         style="width:0px;position:absolute;top:0px;right:0px;height:100%;overflow:auto;-webkit-transition: all 0.5s ease-in-out;transition: all 0.5s ease-in-out;">
+        <div style="width:20px;height:100px;margin:-100px 0 0 -10px;color:#999;position:absolute;opacity:0.5;top:50%;left:50%;"
+             id="showOverlayInfo">此处用于展示覆盖物信息
+        </div>
+        <div id="panel" style="position:absolute;"></div>
+    </div>
+</div>
+
+<div class="modal fade" id="myModal" tabindex="-1" role="dialog"
+     aria-labelledby="myModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close"
+                        data-dismiss="modal" aria-hidden="close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title" id="myModalLabel">
+                    预测结果
+                </h4>
+            </div>
+            <div id="main" style="width: 600px;height:300px;"></div>
+            <script type="text/javascript">
+                // 基于准备好的dom，初始化echarts实例
+                var myChart = echarts.init(document.getElementById('main'));
+
+                // 指定图表的配置项和数据
+                var option = {
+                    title: {
+                        text: '每15分钟',
+//                        subtext: '每15分钟'
+                    },
+                    tooltip: {
+                        trigger: 'axis'
+                    },
+                    legend: {
+                        data: ['RandomForest', 'XGboost', 'SGDLinear', 'Nupic']
+                    },
+                    grid: {
+                        left: '3%',
+                        right: '4%',
+                        bottom: '7%',
+                        containLabel: true
+                    },
+                    toolbox: {
+                        show: true,
+                        feature: {
+                            dataView: {show: true, readOnly: true},
+                            magicType: {show: true, type: ['line', 'bar']},
+                            saveAsImage: {show: true}
+                        }
+                    },
+                    dataZoom: [
+                        {   // 这个dataZoom组件，默认控制x轴。
+                            type: 'slider', // 这个 dataZoom 组件是 slider 型 dataZoom 组件
+                            start: 0,      // 左边在 10% 的位置。
+                            end: 100         // 右边在 60% 的位置。
+                        },
+                        {   // 这个dataZoom组件，也控制x轴。
+                            type: 'inside', // 这个 dataZoom 组件是 inside 型 dataZoom 组件
+                            start: 0,      // 左边在 10% 的位置。
+                            end: 100         // 右边在 60% 的位置。
+                        }
+                    ],
+                    xAxis: {
+                        type: 'category',
+                        boundaryGap: false,
+                        data: ['一', '二', '三', '四', '五', '六', '七']
+
+                    },
+                    yAxis: {
+                        type: 'value'
+                    },
+                    series: [
+                        {
+                            name: 'RandomForest',
+                            type: 'line',
+                            stack: '总量',
+                            data: [120, 132, 101, 134, 90, 230, 210]
+                        },
+                        {
+                            name: 'XGboost',
+                            type: 'line',
+                            stack: '总量',
+                            data: [220, 182, 191, 234, 290, 330, 310]
+                        },
+                        {
+                            name: 'SGDLinear',
+                            type: 'line',
+                            stack: '总量',
+                            data: [150, 232, 201, 154, 190, 330, 410]
+                        },
+                        {
+                            name: 'Nupic',
+                            type: 'line',
+                            stack: '总量',
+                            data: [320, 332, 301, 334, 390, 330, 320]
+                        },
+                        {
+                            name: 'GBDT',
+                            type: 'line',
+                            stack: '总量',
+                            data: [820, 932, 901, 934, 1290, 1330, 1320]
+                        }
+                    ]
+                };
+
+
+                // 使用刚指定的配置项和数据显示图表。
+                myChart.setOption(option);
+            </script>
+            <div class="modal-footer">
+
+            </div>
+        </div><!-- /.modal-content -->
+    </div><!-- /.modal -->
+</div>
+
+<div id="result">
+    <dl>
+        <dt>实时预测</dt>
+        <dd>
+            <ul>
+                <li>
+                    <button class="btn btn-primary btn-lg" id="getLastOverLay">
+                        围栏信息
+                    </button>
+                    <button class="btn btn-primary btn-lg" onclick="clearAll()">
+                        清除围栏
+                    </button>
+                    <!--<button class="btn btn-primary btn-lg" data-toggle="modal" data-target="#myModal">-->
+                    <!--结果预测-->
+                    <!--</button>-->
+                </li>
+            </ul>
+        </dd>
+    </dl>
+
+</div>
+
+<script type="text/javascript">
+
+    // 百度地图API功能
+    var map = new BMap.Map('map');
+    var poi = new BMap.Point(116.307852, 40.057031);
+    map.centerAndZoom(poi, 16);
+    map.enableScrollWheelZoom();
+
+
+    var top_right_navigation = new BMap.NavigationControl({
+        anchor: BMAP_ANCHOR_TOP_LEFT,
+        type: BMAP_NAVIGATION_CONTROL_SMALL
+    }); //右上角，仅包含平移和缩放按钮
+    map.addControl(top_right_navigation);
+    // map.addControl(new BMap.MapTypeControl({anchor: BMAP_ANCHOR_BOTTOM_RIGHT}));
+
+    $("getLastOverLay").onclick = function () {
+        if (overlays.length) {
+            alert(overlays[overlays.length - 1]);
+        } else {
+            alert("没有覆盖物");
+        }
+    }
+
+    var overlays = [];
+    //回调获得覆盖物信息
+    var overlaycomplete = function (e) {
+        overlays.push(e.overlay);
+        var result = "";
+        result = "<p>";
+        result += e.drawingMode + ":";
+        if (e.drawingMode == BMAP_DRAWING_MARKER) {
+            result += ' 坐标：' + e.overlay.getPosition().lng + ',' + e.overlay.getPosition().lat;
+            if ($('isInfowindow').checked) {
+                searchInfoWindow.open(e.overlay);
+            }
+        }
+
+            if (e.drawingMode == BMAP_DRAWING_POLYLINE || e.drawingMode == BMAP_DRAWING_POLYGON || e.drawingMode == BMAP_DRAWING_RECTANGLE) {
+                result += ' 所画的点个数：' + e.overlay.getPath().length+'<br />';
+                for(var i = 0;i<e.overlay.getPath().length;i++) {
+                    result += '坐标' + (i + 1) + ': [' + e.overlay.getPath()[i].lng + ' , ' + e.overlay.getPath()[i].lat + ']<br />';
+                }
+            }
+        result += "</p>";
+        $("showOverlayInfo").style.display = "none";
+        $("panel").innerHTML += result; //将绘制的覆盖物信息结果输出到结果面板
+
+    };
+
+
+    var styleOptions = {
+        strokeColor: "red",    //边线颜色。
+        fillColor: "grey",      //填充颜色。当参数为空时，圆形将没有填充效果。
+        strokeWeight: 3,       //边线的宽度，以像素为单位。
+        strokeOpacity: 0.8,    //边线透明度，取值范围0 - 1。
+        fillOpacity: 0.6,      //填充的透明度，取值范围0 - 1。
+        strokeStyle: 'solid' //边线的样式，solid或dashed。
+    }
+    //实例化鼠标绘制工具
+    var drawingManager = new BMapLib.DrawingManager(map, {
+        isOpen: false, //是否开启绘制模式
+        enableDrawingTool: true, //是否显示工具栏
+        drawingToolOptions: {
+            anchor: BMAP_ANCHOR_BOTTOM_RIGHT, //位置
+            offset: new BMap.Size(5, 5), //偏离值
+            scale: 0.6, //工具栏缩放比例
+            drawingModes: [
+//                BMAP_DRAWING_MARKER,
+                BMAP_DRAWING_CIRCLE,
+                BMAP_DRAWING_POLYGON
+            ]
+
+
+        },
+        circleOptions: styleOptions, //圆的样式
+        polygonOptions: styleOptions, //多边形的样式
+    });
+
+
+    //添加鼠标绘制工具监听事件，用于获取绘制结果
+    drawingManager.addEventListener('overlaycomplete', overlaycomplete);
+
+
+    function $(id) {
+        return document.getElementById(id);
+    }
+
+    function clearAll() {
+        for (var i = 0; i < overlays.length; i++) {
+            map.removeOverlay(overlays[i]);
+        }
+        overlays.length = 0
+    }
+
+    var isPanelShow = false;
+    //显示结果面板动作
+    $("showPanelBtn").onclick = showPanel;
+    function showPanel() {
+        if (isPanelShow == false) {
+            isPanelShow = true;
+            $("showPanelBtn").style.right = "230px";
+            $("panelWrap").style.width = "230px";
+            $("map").style.marginRight = "230px";
+            $("showPanelBtn").innerHTML = "隐藏绘制结果信息<br/>>";
+        } else {
+            isPanelShow = false;
+            $("showPanelBtn").style.right = "0px";
+            $("panelWrap").style.width = "0px";
+            $("map").style.marginRight = "0px";
+            $("showPanelBtn").innerHTML = "显示绘制结果信息<br/><";
+        }
+    }
+
+
+
+</script>
+
+</body>
+</html>
+</script>
